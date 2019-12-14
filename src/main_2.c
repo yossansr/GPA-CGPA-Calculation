@@ -11,6 +11,7 @@ struct Course {
     char grade[3];
     int creditHours;
     float gradePoints;
+    bool status;
     struct Course *next;
 };
 
@@ -36,8 +37,10 @@ void calculateGpa(int);
 void changeStudent(char[50]);
 float convertGrade(char[3]);
 
+void display(struct Semester*, struct Course*);
 void displayMenu();
 
+bool generateCourseStatus(char[3]);
 struct Course *getCourseMemory(char[10]);
 struct Semester *getSemesterMemory(struct Semester*, int);
 struct Student *getStudentMemory(struct Student*, char[50]);
@@ -53,10 +56,14 @@ void modifyMenu();
 void popCourse(char[10]);
 void popSemester(int);
 void popStudent(struct Student*);
+void pushCourse(char[10], char[50], char[3], int, int);
 void pushSemester(int);
 void pushStudent(char[50]);
 
+void sortSemesterAsc();
+
 char *myStrlwr(char[50]);
+char *myStrupr(char[50]);
 void submitMenu();
 
 int main() {
@@ -80,8 +87,9 @@ void calculateCgpa() {
     activeStudent->cgpa = cgpa / (float)totalSemester;
 }
 
+
 void calculateGpa(int semester) {
-    if(isSemesterExist(activeStudent->recentSemester, semester)) return;
+    if(!isSemesterExist(activeStudent->recentSemester, semester)) return;
     struct Course *currCourse = getSemesterMemory(activeStudent->recentSemester, semester)->recentCourse;
     float totalOfGradePoints = 0, gpa = 0;
     int totalOfCreditHours = 0;
@@ -97,10 +105,12 @@ void calculateGpa(int semester) {
 
 
 void changeStudent(char name[50]) {
-    if(!isStudentExist(recentStudent, name)) {
+    char tempName[30];
+    strcpy(tempName, name);
+    if(!isStudentExist(recentStudent, myStrlwr(name))) {
         printf("Student not found\n");
         return;
-    } else activeStudent = getStudentMemory(recentStudent, name);
+    } else activeStudent = getStudentMemory(recentStudent, tempName);
 }
 
 float convertGrade(char grade[3]) {
@@ -132,6 +142,81 @@ float convertGrade(char grade[3]) {
     }
 
     return gradePoints;
+}
+
+void displayMenu() {
+	int choosenMenu;
+	printf("1. Display Semester Ascending\n");
+	printf("2. Display Semester with Highest GPA\n");
+	printf("3. Display Course in a Semester\n");
+	printf("4. Display Failed Course\n");
+	printf("Choose the menu : ");
+	scanf("%d",&choosenMenu);
+	
+	switch(choosenMenu) {
+		case 1:
+			printf("Display Semester Ascending\n");
+			sortSemesterAsc();
+			display(activeStudent->recentSemester, activeStudent->recentSemester->recentCourse);
+            system( "read -n 1 -s -p \"Press any key to continue...\"" );
+			break;
+	}
+}
+
+void display(struct Semester *currSemester, struct Course *currCourse) {
+	if(currCourse == NULL) {
+		printf("GPA : %.2f\n\n", currSemester->gpa);
+        if(currSemester->next != NULL) return display(currSemester->next, currSemester->next->recentCourse);
+        else {
+            printf("%s's CGPA : %.2f\n\n", activeStudent->name, activeStudent->cgpa);
+            return;
+        }
+	}
+    if(currCourse == activeStudent->recentSemester->recentCourse) {
+        printf("<<<< Information of Semester %d >>>>\n", currSemester->semester);
+    }
+		
+	char status[10];
+	if (generateCourseStatus(currCourse->grade)) strcpy(status, "Pass");
+	else strcpy(status, "Fail");
+	printf("Course ID    : %s\n", currCourse->id);
+	printf("Course Name  : %s\n", currCourse->name);
+	printf("Credit Hours : %d\n", currCourse->creditHours);
+	printf("Grade (%s) : %s\n", status, currCourse->grade);
+	
+	
+	return display(currSemester, currCourse->next);
+}
+
+bool generateCourseStatus(char grade[3]) {
+	bool status = 0;
+    if(strcmp(grade, "A-") == 0) {
+        status = 1;
+    } else if(strcmp(grade, "B+") == 0) {
+        status = 1;
+    } else if(strcmp(grade, "B-") == 0) {
+        status = 1;
+    } else if(strcmp(grade, "C+") == 0) {
+        status = 1;
+    } else if(strcmp(grade, "C-") == 0) {
+        status = 0;
+    } else if(strcmp(grade, "D+") == 0) {
+        status = 0;
+    } else if(strcmp(grade, "D-") == 0) {
+        status = 0;
+    } else if(strncmp(grade, "A", 1) == 0) {
+        status = 1;
+    } else if(strncmp(grade, "B", 1) == 0) {
+        status = 1;
+    } else if(strncmp(grade, "C", 1) == 0) {
+        status = 1;
+    } else if(strncmp(grade, "D", 1) == 0) {
+        status = 0;
+    } else if(strncmp(grade, "E", 1) == 0) {
+        status = 0;
+    }
+
+    return status;
 }
 
 struct Course *getCourseMemory(char id[10]) {
@@ -173,12 +258,15 @@ struct Semester *getSemesterMemory(struct Semester *currSemester, int semester) 
 }
 
 struct Student *getStudentMemory(struct Student *currStudent, char name[50]) {
+    char tempName[30];
+    strcpy(tempName, name);
     if(currStudent == NULL)
         return NULL;
-    if(strncmp(name, myStrlwr(currStudent->name), strlen(name)) == 0) 
+    if(strncmp(myStrlwr(name), myStrlwr(currStudent->name), strlen(name)) == 0) {
+        strcpy(currStudent->name, tempName);
         return currStudent;
-
-    return getStudentMemory(currStudent->next, name);
+    }
+    return getStudentMemory(currStudent->next, tempName);
 }
 
 int getStudentMemoryOrder(struct Student *theStudent) {
@@ -200,6 +288,7 @@ int getStudentMemoryOrder(struct Student *theStudent) {
 bool isCourseExist(char id[10]) {
     struct Semester *currSemester = activeStudent->recentSemester;
     struct Course *currCourse;
+	if(currSemester->recentCourse == NULL) return false;
 
     while(currSemester != NULL) {
         currCourse = currSemester->recentCourse;
@@ -231,6 +320,9 @@ int mainMenu() {
     int choosenMenu;
     char yOrN;
     system("clear");
+    if(activeStudent == NULL) printf("Hello Guest, please add a student first\n");
+    else printf("Hello %s!\n", activeStudent->name);
+
     if(activeStudent != NULL) {
         printf("1. New Student\n");
         printf("2. Change Student\n");
@@ -251,9 +343,10 @@ int mainMenu() {
     
     case 1: {
         char studentName[50];
+        fflush(stdin);
         printf("New Student\n");
         printf("Name : ");
-        scanf("%s", studentName);
+        scanf("%[^\n]%*c", studentName);
         pushStudent(studentName);
         break;
     }
@@ -261,7 +354,7 @@ int mainMenu() {
         char studentName[50];
         printf("Change to student name : ");
         scanf("%s", studentName);
-        changeStudent(myStrlwr(studentName));
+        changeStudent(studentName);
         break;
     }
     case 3:
@@ -299,7 +392,7 @@ void modifyMenu() {
     int choosenMenu;
     printf("1. Modify Course Information\n");
     printf("2. Delete a Course\n");
-    printf("3. Delete a Semester"\n);
+    printf("3. Delete a Semester\n");
     printf("Choose the menu : ");
     scanf("%d", &choosenMenu);
 
@@ -311,7 +404,7 @@ void modifyMenu() {
         scanf("%s", id);
         if(!isCourseExist(myStrlwr(id))) printf("The course is not exist, you will create the new one\n");
         printf("Course Name  : ");
-        scanf("%s", name);
+        scanf("%[^\n]%*c", name);
         printf("Credit Hours : ");
         scanf("%d", &creditHours);
         printf("Grade        : ");
@@ -387,15 +480,15 @@ void popStudent(struct Student *theStudent) {
 void pushCourse(char id[10], char courseName[50], char grade[3], int creditHours, int semester) {
     struct Course *newCourse = (struct Course*) malloc(sizeof(struct Course));
     if(isCourseExist(myStrlwr(id))) {
-        printf("The course is already exist, you will modify it");
+        printf("The course is already exist, you will modify it\n");
         newCourse = getCourseMemory(id);
     }
-    
-    strcpy(newCourse->id, id);
-    strcpy(newCourse->name, courseName);
-    strcpy(newCourse->grade, grade);
+    strcpy(newCourse->id, myStrupr(id));
+    strcpy(newCourse->name, myStrupr(courseName));
+    strcpy(newCourse->grade, myStrupr(grade));
     newCourse->gradePoints = convertGrade(grade);
     newCourse->creditHours = creditHours;
+    newCourse->status = generateCourseStatus(grade);
 
     if(!isCourseExist(myStrlwr(id))) {
         newCourse->next = getSemesterMemory(activeStudent->recentSemester, semester)->recentCourse;
@@ -426,9 +519,44 @@ void pushStudent(char name[50]) {
     activeStudent = newStudent;
 }
 
+void sortSemesterAsc() {
+	struct Semester *currSemester = activeStudent->recentSemester, *currSemester2 = NULL, *minSemester = currSemester, *tempSemester = NULL;
+	
+	while(currSemester != NULL) {
+		currSemester2 = currSemester->next;
+		minSemester = currSemester;
+	
+		while(currSemester2 != NULL) {
+			if(minSemester->semester > currSemester2->semester) minSemester = currSemester2;
+			
+			currSemester2 = currSemester2->next;
+		}
+		
+		tempSemester = (struct Semester*) malloc(sizeof(struct Semester));
+		tempSemester->semester = currSemester->semester;
+		tempSemester->gpa = currSemester->gpa;
+		tempSemester->recentCourse = currSemester->recentCourse;
+		currSemester->semester = minSemester->semester;
+		currSemester->gpa = minSemester->gpa;
+		currSemester->recentCourse = minSemester->recentCourse;
+		minSemester->semester = tempSemester->semester;
+		minSemester->gpa = tempSemester->gpa;
+		minSemester->recentCourse = tempSemester->recentCourse;
+			
+		currSemester = currSemester->next;
+	}
+}
+
 char *myStrlwr(char string[50]) {
     for (int i = 0; i < strlen(string); i++) {
         string[i] = tolower(string[i]);
+    }
+    return string;
+}
+
+char *myStrupr(char string[50]) {
+    for (int i = 0; i < strlen(string); i++) {
+        string[i] = toupper(string[i]);
     }
     return string;
 }
@@ -450,8 +578,9 @@ void submitMenu() {
             printf("Course Name  : ");
             scanf("%s", courseName);
             fflush(stdin);
-            printf("Credit Hours :");
+            printf("Credit Hours : ");
             scanf("%d", &creditHours);
+            fflush(stdin);
             printf("Grade        : ");
             scanf("%s", grade);
             pushCourse(id, courseName, grade, creditHours, semester);
@@ -463,5 +592,6 @@ void submitMenu() {
         printf("Enter another semester (y/n) : ");
         scanf(" %c", &yOrN);
         if(tolower(yOrN) == 'y') isContinue = true;
+        else calculateCgpa();
     }
 }
