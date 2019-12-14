@@ -51,10 +51,23 @@ struct Course* checkCourse(char[50]);
 struct Semester* checkCourseSemester(char[50]);
 int coursePosition(char[50]);
 int lastCourse(char[50]);
+int countSemester();
+
+int getSemesterbyCourse(char[50]);
 
 int main() {
+    struct Course course;
+    course.creditHours = 3;
+    strcpy(course.grade, "B+");
+    strcpy(course.name, "Algorithm");
     pushStudent("Yossan");
-    popSemester();
+    pushSemester(1);
+    pushSemester(4);
+    pushSemester(2);
+    pushCourse(course, 2);
+    popCourseWithDetails("Algorithm");
+    sortSemesterASC();
+    displayAll(recentStudent->recentSemester);
 
     return 0;
 }
@@ -93,24 +106,29 @@ void popSemester() {
 
 void pushCourse(struct Course course, int semester) {
     struct Course *newCourse = NULL;
-    if(checkSemester(semester) == NULL)
+    if(checkSemester(semester) == NULL) {
+        printf("Semester not found\n");
+        return;
+    }
+
+    if(checkCourse(course.name) == NULL)
         newCourse = (struct Course*) malloc(sizeof(struct Course));
     else 
-        newCourse = checkSemester(semester)->recentCourse;
+        newCourse = checkCourse(course.name);
     strcpy(newCourse->name, course.name);
     strcpy(newCourse->grade, course.grade);
     newCourse->gradePoints = convertGrade(course.grade);
     newCourse->creditHours = course.creditHours;
-    if(checkSemester(semester) == NULL) {
-        newCourse->next = recentStudent->recentSemester->recentCourse;
-        recentStudent->recentSemester->recentCourse = newCourse;
-        calculateGpa(recentStudent->recentSemester->semester);
-    }
+    newCourse->next = checkSemester(semester)->recentCourse;
+    checkSemester(semester)->recentCourse = newCourse;
+    calculateGpa(semester);
 }
 
 void popCourseWithDetails(char courseName[50]) {
     // Actualy temp course link is the link before the link that we want
+    printf("Yes\n");
     struct Course *tempCourse = checkCourse(courseName), *deletedCourse = NULL;
+    printf("Yes\n");
     if(tempCourse == NULL)
         printf("Course Not Found");
     else {
@@ -126,6 +144,7 @@ void popCourseWithDetails(char courseName[50]) {
             tempCourse->next = NULL;
             free(tempCourse);
         }
+        calculateGpa(getSemesterbyCourse(courseName));
     }
 }
 
@@ -138,6 +157,10 @@ void calculateGpa(int semester) {
         } else {
             currSemester = currSemester->next;
         }
+    }
+    if(!found) {
+        checkSemester(semester)->gpa = 0;
+        return;
     }
 
     struct Course *currCourse = currSemester->recentCourse;
@@ -200,27 +223,31 @@ float calculateCgpa() {
 }
 
 void sortSemesterASC() {
-    struct Semester *currSemester = recentStudent->recentSemester;
-    struct Semester *currSemester2 = currSemester->next;
-    struct Semester *minSemester = NULL, *tempSemester = NULL;
+    struct Semester *currSemester = recentStudent->recentSemester, *currSemester2, *minSemester;
+    struct Semester *tempSemester = (struct Semester*) malloc(sizeof(struct Semester));
 
     while (currSemester != NULL) {
         minSemester = currSemester;
-        while (currSemester->next != NULL) {
+        currSemester2 = currSemester->next;
+        while(currSemester2 != NULL) {
             if(minSemester->semester > currSemester2->semester) {
                 minSemester = currSemester2;
-                currSemester2 = currSemester2->next;
             }
+            currSemester2 = currSemester2->next;
         }
-        tempSemester = currSemester;
-        currSemester = minSemester;
-        minSemester = tempSemester;
-        
+        tempSemester->gpa = currSemester->gpa;
+        tempSemester->recentCourse = currSemester->recentCourse;
+        tempSemester->semester = currSemester->semester;
+        currSemester->semester = minSemester->semester;
+        currSemester->gpa = minSemester->gpa;
+        currSemester->recentCourse = minSemester->recentCourse;
+        minSemester->gpa = tempSemester->gpa;
+        minSemester->semester = tempSemester->semester;
+        minSemester->recentCourse = tempSemester->recentCourse;
         currSemester = currSemester->next;
     }
-
-    displayAll(currSemester);
     
+
 }
 
 void displayAll(struct Semester *currSemester) {
@@ -241,7 +268,8 @@ void displayAll(struct Semester *currSemester) {
 }
 
 bool mainMenu() {
-    if(activeStudent[0] == '\0') {
+    strcpy(activeStudent, recentStudent->name);
+    if(strncmp(activeStudent, "\0", 1)) {
         printf("Hello Guest\n\n");
     } else {
         printf("Hello %s\n\n", activeStudent);
@@ -351,35 +379,29 @@ struct Semester* checkSemester(int semester) {
     while (currSemester != NULL) {
         if(semester == currSemester->semester) {
             theSemester = currSemester;
+            return theSemester;
         }
+        currSemester = currSemester->next;
     }
-    return theSemester;
+    return NULL;
 }
 
 struct Course* checkCourse(char courseName[50]) {
     struct Semester *currSemester = recentStudent->recentSemester;
-    struct Course *currCourse = NULL, *theCourse = NULL, *tempCourse = NULL;
-    int startTemp = 0;
-    
+    struct Course *currCourse = NULL;
     while(currSemester != NULL) {
-        tempCourse = currCourse;
-        if(startTemp == 0) {
-            startTemp++;
-        } else if(startTemp == 1) {
-            tempCourse = currSemester->recentCourse;
-        }
         currCourse = currSemester->recentCourse;
-        while (currCourse != NULL) {
-            if (strncmp(courseName, currCourse->name, strlen(courseName)) == 0) {
-                theCourse = tempCourse;
-            }
-            tempCourse = tempCourse->next;
+        while(currCourse != NULL) {
+            if(strncmp(courseName, currCourse->name, strlen(courseName)) == 0)
+                printf("yes\n");
+                return currCourse;
             currCourse = currCourse->next;
         }
-        currSemester = currSemester->next; 
+
+        currSemester = currSemester->next;
     }
 
-    return theCourse;
+    return NULL;
 }
 
 struct Semester* checkCourseSemester(char courseName[50]) {
@@ -406,13 +428,19 @@ int coursePosition(char courseName[50]) {
     struct Course *currCourse = NULL;
     int currPosition, position;
     
+    if(checkCourse(courseName) == NULL) {
+        return -1;
+    }
+
     while(currSemester != NULL) {
+        printf("YEs\n");
         currPosition = -1;
         currCourse = currSemester->recentCourse;
         while (currCourse != NULL) {
             currPosition++;
             if (strncmp(courseName, currCourse->name, strlen(courseName)) == 0) {
                  position = currPosition;
+                 return position;
             }
             
             currCourse = currCourse->next;
@@ -432,4 +460,32 @@ int lastCourse(char courseName[50]) {
     }
 
     return lastCourse;
+}
+
+int countSemester() {
+    struct Semester *semester = recentStudent->recentSemester;
+    int count = 0;
+
+    while(semester != NULL) {
+        count++;
+        semester = semester->next;
+    }
+
+    return count;
+}
+
+int getSemesterbyCourse(char courseName[50]) {
+    struct Semester *currSemester = recentStudent->recentSemester;
+    struct Course *currCourse = NULL;
+    while(currSemester != NULL) {
+        currCourse = currSemester->recentCourse;
+        while (currCourse != NULL) {
+            if(strncmp(courseName, currCourse->name, strlen(courseName)) == 0)
+                return currSemester->semester;
+            currCourse = currCourse->next;
+        }
+
+        currSemester = currSemester->next;
+    }
+    return 0;
 }
