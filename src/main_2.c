@@ -172,17 +172,17 @@ void display(struct Semester *currSemester, struct Course *currCourse) {
             return;
         }
 	}
-    if(currCourse == activeStudent->recentSemester->recentCourse) {
+    if(currCourse == getSemesterMemory(activeStudent->recentSemester, currSemester->semester)->recentCourse) {
         printf("<<<< Information of Semester %d >>>>\n", currSemester->semester);
     }
 		
 	char status[10];
 	if (generateCourseStatus(currCourse->grade)) strcpy(status, "Pass");
 	else strcpy(status, "Fail");
-	printf("Course ID    : %s\n", currCourse->id);
-	printf("Course Name  : %s\n", currCourse->name);
+	printf("Course ID    : %s\n", myStrupr(currCourse->id));
+	printf("Course Name  : %s\n", myStrupr(currCourse->name));
 	printf("Credit Hours : %d\n", currCourse->creditHours);
-	printf("Grade (%s) : %s\n", status, currCourse->grade);
+	printf("Grade (%s) : %s\n", status, myStrupr(currCourse->grade));
 	
 	
 	return display(currSemester, currCourse->next);
@@ -483,9 +483,9 @@ void pushCourse(char id[10], char courseName[50], char grade[3], int creditHours
         printf("The course is already exist, you will modify it\n");
         newCourse = getCourseMemory(id);
     }
-    strcpy(newCourse->id, myStrupr(id));
-    strcpy(newCourse->name, myStrupr(courseName));
-    strcpy(newCourse->grade, myStrupr(grade));
+    strcpy(newCourse->id, id);
+    strcpy(newCourse->name, courseName);
+    strcpy(newCourse->grade, grade);
     newCourse->gradePoints = convertGrade(grade);
     newCourse->creditHours = creditHours;
     newCourse->status = generateCourseStatus(grade);
