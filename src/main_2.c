@@ -175,6 +175,7 @@ void display(struct Semester *currSemester, struct Course *currCourse) {
     if(currCourse == getSemesterMemory(activeStudent->recentSemester, currSemester->semester)->recentCourse) {
         printf("<<<< Information of Semester %d >>>>\n", currSemester->semester);
     }
+    
 		
 	char status[10];
 	if (generateCourseStatus(currCourse->grade)) strcpy(status, "Pass");
