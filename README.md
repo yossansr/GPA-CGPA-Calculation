@@ -1,4 +1,5 @@
 # GPA-CGPA-Calculation
+A program to manage students informations of their CGPA and GPA
 
 ## Concept
 We want to have many students which each student has many semesters which each semester has many courses. To be able to create that structure, we using nested linked list. So, course linked list in semester linked list, and semester linked list in student linked list. In this project we also implement sorting and searching in the linked list.
